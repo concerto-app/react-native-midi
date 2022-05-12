@@ -1,5 +1,6 @@
 package com.shaverz.midi;
 
+import android.hardware.usb.UsbDevice;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -9,6 +10,8 @@ import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.WritableNativeArray;
+import com.facebook.react.bridge.WritableNativeMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.util.ArrayList;
@@ -122,9 +125,34 @@ public class MidiModule extends ReactContextBaseJavaModule implements LifecycleE
         }
     }
 
+    private WritableNativeMap mapDevice(UsbDevice device) {
+        WritableNativeMap result = new WritableNativeMap();
+        result.putInt("id", device.getDeviceId());
+        result.putInt("class", device.getDeviceClass());
+        result.putInt("subclass", device.getDeviceSubclass());
+        result.putInt("protocol", device.getDeviceProtocol());
+        result.putInt("productId", device.getProductId());
+        result.putInt("vendorId", device.getVendorId());
+        result.putString("name", device.getDeviceName());
+        result.putString("manufacturerName", device.getManufacturerName());
+        result.putString("productName", device.getProductName());
+        result.putString("serialNumber", device.getSerialNumber());
+        result.putString("version", device.getVersion());
+        return result;
+    }
+
     @ReactMethod
     public void getDevices(Promise promise) {
-        promise.resolve(new ArrayList(mUsbDriver.getDevices().values()));
+        Map<Integer, UsbDevice> deviceMap = mUsbDriver.getDevices();
+
+        WritableNativeArray result = new WritableNativeArray();
+
+        for (UsbDevice device: deviceMap.values()) {
+            WritableNativeMap mappedDevice = this.mapDevice(device);
+            result.pushMap(mappedDevice);
+        }
+
+        promise.resolve(result);
     }
 
     @ReactMethod
@@ -134,6 +162,8 @@ public class MidiModule extends ReactContextBaseJavaModule implements LifecycleE
 
     @ReactMethod
     public void getDevice(int id, Promise promise) {
-        promise.resolve(mUsbDriver.getDevices().get(id));
+        UsbDevice device = mUsbDriver.getDevices().get(id);
+        WritableNativeMap result = this.mapDevice(device);
+        promise.resolve(result);
     }
 }
